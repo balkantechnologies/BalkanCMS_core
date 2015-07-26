@@ -233,7 +233,6 @@ class PageManager(models.Manager):
     def search(self, query_string, fields=None, backend='default'):
         return self.get_queryset().search(query_string, fields=fields, backend=backend)
 
-
 class PageBase(models.base.ModelBase):
     """Metaclass for Page"""
     def __init__(cls, name, bases, dct):
@@ -557,7 +556,6 @@ class Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexed
         else:
             return self.template
 
-    @property
     def site(self):
         try:
             if self.depth == 2:
@@ -567,7 +565,6 @@ class Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexed
         except:
             return None
 
-    @property
     def homepage(self):
         if self.site.is_multi_langual_site:
             return self.get_ancestors()[2]
