@@ -32,7 +32,7 @@ def initial_data(apps, schema_editor):
 
     # Create homepage
     homepage = Page.objects.create(
-        title="Welcome to your new Wagtail site!",
+        title="Welcome to your new BalkanCMS site!",
         slug='home',
         content_type=page_content_type,
         path='00010001',

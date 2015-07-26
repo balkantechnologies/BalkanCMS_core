@@ -12,7 +12,7 @@ from django.db import models, connection, transaction
 from django.db.models import Q
 from django.db.models.signals import post_save, pre_delete, post_delete
 from django.dispatch.dispatcher import receiver
-from django.http import Http404
+from django.http import Http404, HttpResponseRedirect
 from django.core.cache import cache
 from django.core.handlers.wsgi import WSGIRequest
 from django.core.handlers.base import BaseHandler
@@ -22,7 +22,7 @@ from django.contrib.auth.models import Group
 from django.conf import settings
 from django.template.response import TemplateResponse
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import get_language_from_request, activate, ugettext_lazy as _
 from django.core.exceptions import ValidationError, ImproperlyConfigured, ObjectDoesNotExist
 from django.utils.functional import cached_property
 from django.utils.encoding import python_2_unicode_compatible
@@ -56,6 +56,7 @@ class Site(models.Model):
     port = models.IntegerField(verbose_name=_('Port'), default=80, help_text=_("Set this to something other than 80 if you need a specific port number to appear in URLs (e.g. development on port 8000). Does not affect request handling (so port forwarding still works)."))
     root_page = models.ForeignKey('Page', verbose_name=_('Root page'), related_name='sites_rooted_here')
     is_default_site = models.BooleanField(verbose_name=_('Is default site'), default=False, help_text=_("If true, this site will handle requests for all other hostnames that do not have a site entry of their own"))
+    is_multi_langual_site = models.BooleanField(verbose_name=_('Is multi-langual site'), default=False, help_text=_("Check to activate the multi-langual system"))
 
     class Meta:
         unique_together = ('hostname', 'port')
@@ -554,12 +555,46 @@ class Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexed
         else:
             return self.template
 
+    @property
+    def site(self):
+        return Site(root_page=self.get_ancestors()[1])
+
     def serve(self, request, *args, **kwargs):
-        return TemplateResponse(
-            request,
-            self.get_template(request, *args, **kwargs),
-            self.get_context(request, *args, **kwargs)
-        )
+        # Check if the site is multilangual and if the depth is 2, if so redirect to the proper language start page. If not render the page as usual
+        if self.site.is_multi_langual_site and self.depth == 2:
+            language = get_language_from_request(request)
+            activate(language)
+
+            return HttpResponseRedirect(self.url + language + '/')
+        else:
+            return TemplateResponse(
+                request,
+                self.get_template(request, *args, **kwargs),
+                self.get_context(request, *args, **kwargs)
+            )
+
+    def in_other_languages(self):
+        if self.site.is_multi_langual_site:
+            if self.translation_of:
+                # If this is a translated page return the main language and other translations
+                return Page.objects.filter(Q(translation_of = self.translation_of) | Q(pk = self.translation_of)).exclude(pk = self)
+            else:
+                # If this is the main language return all translations
+                return Page.objects.filter(translation_of = self)
+        else:
+            return None
+
+    def language(self):
+        if self.site.is_multi_langual_site:
+            # The site is multi-langual, so get the language
+            if self.depth == 2:
+                language = self.url.strip('/')
+            else:
+                language = self.get_ancestors()[2].url.strip('/')
+            return language
+        else:
+            # The site isn't multi-langual, so we'll return nothing
+            return None
 
     def is_navigable(self):
         """

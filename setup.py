@@ -39,12 +39,12 @@ install_requires = [
 
 
 setup(
-    name='wagtail',
+    name='BalkanCMS_core',
     version=__version__,
-    description='A Django content management system focused on flexibility and user experience',
-    author='Matthew Westcott',
-    author_email='matthew.westcott@torchbox.com',
-    url='http://wagtail.io/',
+    description='The BalkanCMS core package',
+    author='Arjan van Eersel',
+    author_email='arjan@balkantechnologies.com',
+    url='http://balkancms.com/',
     packages=find_packages(),
     include_package_data=True,
     license='BSD',
