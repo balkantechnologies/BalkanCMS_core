@@ -291,6 +291,8 @@ class Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexed
     first_published_at = models.DateTimeField(verbose_name=_('First published at'), null=True, editable=False)
     latest_revision_created_at = models.DateTimeField(verbose_name=_('Latest revision created at'), null=True, editable=False)
 
+    translation_of = models.ForeignKey('self', verbose_name = _('Translation of'), null = True, blank = True, default = None, related_name='+', help_text=_("Select the page of which this page is an translation"), on_delete=models.SET_NULL)
+
     search_fields = (
         index.SearchField('title', partial_match=True, boost=2),
         index.FilterField('id'),
