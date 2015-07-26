@@ -566,12 +566,6 @@ class Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexed
         except:
             return None
 
-    def homepage(self):
-        if self.site.is_multi_langual_site:
-            return self.get_ancestors()[2]
-        else:
-            return self.get_ancestors()[1]
-
     def serve(self, request, *args, **kwargs):
         # Check if the site is multilangual and if the depth is 2, if so redirect to the proper language start page. If not render the page as usual
         if self.site.is_multi_langual_site and self.depth == 2:
@@ -1032,6 +1026,12 @@ class Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexed
     def get_view_restrictions(self):
         """Return a query set of all page view restrictions that apply to this page"""
         return PageViewRestriction.objects.filter(page__in=self.get_ancestors(inclusive=True))
+
+    def get_home(self, inclusive = False):
+        if self.site.is_multi_langual_site:
+            return Page.objects.ancestor_of(self, inclusive)[2]
+        else:
+            return Page.objects.ancestor_of(self, inclusive)[1]
 
     password_required_template = getattr(settings, 'PASSWORD_REQUIRED_TEMPLATE', 'wagtailcore/password_required.html')
 
