@@ -556,6 +556,7 @@ class Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexed
         else:
             return self.template
 
+    @property
     def site(self):
         try:
             if self.depth == 2:
