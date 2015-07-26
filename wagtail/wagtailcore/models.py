@@ -567,6 +567,13 @@ class Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexed
         except:
             return None
 
+    @property
+    def homepage(self):
+        if self.site.is_multi_langual_site:
+            return self.get_ancestors()[2]
+        else:
+            return self.get_ancestors()[1]
+
     def serve(self, request, *args, **kwargs):
         # Check if the site is multilangual and if the depth is 2, if so redirect to the proper language start page. If not render the page as usual
         if self.site.is_multi_langual_site and self.depth == 2:
