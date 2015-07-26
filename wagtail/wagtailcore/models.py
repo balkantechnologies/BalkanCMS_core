@@ -595,7 +595,7 @@ class Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexed
     def language(self):
         if self.site.is_multi_langual_site:
             # The site is multi-langual, so get the language
-            if self.depth == 2:
+            if self.depth == 3:
                 language = self.url.strip('/')
             else:
                 language = self.get_ancestors()[2].url.strip('/')
