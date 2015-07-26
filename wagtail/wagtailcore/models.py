@@ -585,7 +585,7 @@ class Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexed
         if self.site.is_multi_langual_site:
             if self.translation_of:
                 # If this is a translated page return the main language and other translations
-                return Page.objects.filter(Q(translation_of = self.translation_of) | Q(pk = self.translation_of)).exclude(pk = self)
+                return Page.objects.filter(Q(translation_of = self.translation_of) | Q(pk = self.translation_of.pk)).exclude(pk = self.pk)
             else:
                 # If this is the main language return all translations
                 return Page.objects.filter(translation_of = self)
