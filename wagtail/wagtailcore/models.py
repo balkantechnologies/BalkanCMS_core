@@ -1029,9 +1029,15 @@ class Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexed
 
     def get_home(self, inclusive = False):
         if self.site.is_multi_langual_site:
-            return Page.objects.ancestor_of(self, inclusive)[2]
+            if self.depth == 3:
+                return self
+            else:
+                return Page.objects.ancestor_of(self, inclusive)[2]
         else:
-            return Page.objects.ancestor_of(self, inclusive)[1]
+            if self.depth == 2:
+                return self
+            else:
+                return Page.objects.ancestor_of(self, inclusive)[1]
 
     password_required_template = getattr(settings, 'PASSWORD_REQUIRED_TEMPLATE', 'wagtailcore/password_required.html')
 
