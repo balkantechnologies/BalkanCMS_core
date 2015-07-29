@@ -279,6 +279,7 @@ class Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexed
 
     seo_title = models.CharField(verbose_name=_("Page title"), max_length=255, blank=True, help_text=_("Optional. 'Search Engine Friendly' title. This will appear at the top of the browser window."))
     show_in_menus = models.BooleanField(verbose_name=_('Show in menus'), default=False, help_text=_("Whether a link to this page will appear in automatically generated menus"))
+    menu_weight = models.IntegerField(verbose_name=_('Weight in menus', default = 0), default=False, help_text=_("Weight of the item in the menu"))
     search_description = models.TextField(verbose_name=_('Search description'), blank=True)
 
     go_live_at = models.DateTimeField(verbose_name=_("Go live date/time"), help_text=_("Please add a date-time in the form YYYY-MM-DD hh:mm."), blank=True, null=True)
@@ -1055,10 +1056,13 @@ class Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexed
         return TemplateResponse(request, self.password_required_template, context)
 
 
-def get_navigation_menu_items():
+def get_navigation_menu_items(order_by_path = False):
     # Get all pages that appear in the navigation menu: ones which have children,
     # or are at the top-level (this rule required so that an empty site out-of-the-box has a working menu)
-    pages = Page.objects.filter(Q(depth=2) | Q(numchild__gt=0)).order_by('path')
+    if order_by_path:
+        pages = Page.objects.filter(Q(depth=2) | Q(numchild__gt=0)).order_by('path')
+    else:
+        pages = Page.objects.filter(Q(depth=2) | Q(numchild__gt=0)).order_by('menu_weight', 'path')
 
     # Turn this into a tree structure:
     #     tree_node = (page, children)
