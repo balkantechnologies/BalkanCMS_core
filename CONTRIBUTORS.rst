@@ -54,6 +54,9 @@ Contributors
 * Mac Chapman
 * Brett Grace
 * Nar Chhantyal
+* Michael Fillier
+* Mitchel Cabuloy
+* Piet Delport
 
 Translators
 ===========

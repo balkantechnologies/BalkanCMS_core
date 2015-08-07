@@ -3,9 +3,6 @@ from __future__ import unicode_literals
 import logging
 import json
 
-from six import StringIO
-from six.moves.urllib.parse import urlparse
-
 from modelcluster.models import ClusterableModel, get_all_child_relations
 
 from django.db import models, connection, transaction
@@ -22,7 +19,13 @@ from django.contrib.auth.models import Group
 from django.conf import settings
 from django.template.response import TemplateResponse
 from django.utils import timezone
+<<<<<<< HEAD
 from django.utils.translation import get_language_from_request, activate, ugettext_lazy as _
+=======
+from django.utils.six import StringIO
+from django.utils.six.moves.urllib.parse import urlparse
+from django.utils.translation import ugettext_lazy as _
+>>>>>>> d4259e133b80d5648266db181029dfbe0fbcf885
 from django.core.exceptions import ValidationError, ImproperlyConfigured, ObjectDoesNotExist
 from django.utils.functional import cached_property
 from django.utils.encoding import python_2_unicode_compatible
@@ -233,6 +236,13 @@ class PageManager(models.Manager):
     def search(self, query_string, fields=None, backend='default'):
         return self.get_queryset().search(query_string, fields=fields, backend=backend)
 
+<<<<<<< HEAD
+=======
+    def specific(self):
+        return self.get_queryset().specific()
+
+
+>>>>>>> d4259e133b80d5648266db181029dfbe0fbcf885
 class PageBase(models.base.ModelBase):
     """Metaclass for Page"""
     def __init__(cls, name, bases, dct):
