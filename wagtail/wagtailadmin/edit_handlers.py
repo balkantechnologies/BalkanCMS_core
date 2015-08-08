@@ -724,7 +724,9 @@ Page.promote_panels = [
         FieldPanel('slug'),
         FieldPanel('seo_title'),
         FieldPanel('show_in_menus'),
-        FieldPanel('menu_weight'), # BalkanCMS
+        #BalkanCMS
+        FieldPanel('menu_weight'),
+        ##BalkanCMS
         FieldPanel('search_description'),
     ], ugettext_lazy('Common page configuration')),
 ]
@@ -732,7 +734,6 @@ Page.promote_panels = [
 Page.settings_panels = [
     PublishingPanel()
 ]
-
 
 class BaseStreamFieldPanel(BaseFieldPanel):
     def classes(self):

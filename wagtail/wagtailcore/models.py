@@ -57,12 +57,16 @@ class SiteManager(models.Manager):
 
 #BalkanCMS: Renamed Site to _Site to override the site model
 @python_2_unicode_compatible
-class _Site(models.Model):
+class Site(models.Model):
     hostname = models.CharField(verbose_name=_('Hostname'), max_length=255, db_index=True)
     port = models.IntegerField(verbose_name=_('Port'), default=80, help_text=_("Set this to something other than 80 if you need a specific port number to appear in URLs (e.g. development on port 8000). Does not affect request handling (so port forwarding still works)."))
     root_page = models.ForeignKey('Page', verbose_name=_('Root page'), related_name='sites_rooted_here')
     is_default_site = models.BooleanField(verbose_name=_('Is default site'), default=False, help_text=_("If true, this site will handle requests for all other hostnames that do not have a site entry of their own"))
 
+    #BalkanCMS
+    is_multi_langual_site = models.BooleanField(verbose_name=_('Is multi-langual site'), default=False, help_text=_("Check to activate the multi-langual system"))
+    ##BalkanCMS
+    
     class Meta:
         unique_together = ('hostname', 'port')
         verbose_name = _('Site')
@@ -146,9 +150,6 @@ class _Site(models.Model):
             cache.set('wagtail_site_root_paths', result, 3600)
 
         return result
-
-class Site(_Site):
-    is_multi_langual_site = models.BooleanField(verbose_name=_('Is multi-langual site'), default=False, help_text=_("Check to activate the multi-langual system"))
 
 # Clear the wagtail_site_root_paths from the cache whenever Site records are updated
 @receiver(post_save, sender=Site)
@@ -273,9 +274,9 @@ class PageBase(models.base.ModelBase):
             # register this type in the list of page content types
             PAGE_MODEL_CLASSES.append(cls)
 
-#BalkanCMS: Renamed Page to _Page to override the page model
+#BalkanCMS: Renamed Page to Page to override the page model
 @python_2_unicode_compatible
-class _Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexed)):
+class Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexed)):
     title = models.CharField(verbose_name=_('Title'), max_length=255, help_text=_("The page title as you'd like it to be seen by the public"))
     slug = models.SlugField(verbose_name=_('Slug'), max_length=255, help_text=_("The name of the page as it will appear in URLs e.g http://domain.com/blog/[my-slug]/"))
     # TODO: enforce uniqueness on slug field per parent (will have to be done at the Django
@@ -299,6 +300,11 @@ class _Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexe
     first_published_at = models.DateTimeField(verbose_name=_('First published at'), null=True, editable=False)
     latest_revision_created_at = models.DateTimeField(verbose_name=_('Latest revision created at'), null=True, editable=False)
 
+    #BalkanCMS
+    menu_weight = models.IntegerField(verbose_name=_('Weight in menus'), default = 0, help_text=_("Weight of the item in the menu"))
+    translation_of = models.ForeignKey('self', verbose_name = _('Translation of'), null = True, blank = True, default = None, related_name='+', help_text=_("Select the page of which this page is an translation"), on_delete=models.SET_NULL)
+    ##BalkanCMS
+
     search_fields = (
         index.SearchField('title', partial_match=True, boost=2),
         index.FilterField('id'),
@@ -311,7 +317,7 @@ class _Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexe
     )
 
     def __init__(self, *args, **kwargs):
-        super(_Page, self).__init__(*args, **kwargs)
+        super(Page, self).__init__(*args, **kwargs)
         if not self.id and not self.content_type_id:
             # this model is being newly created rather than retrieved from the db;
             # set content type to correctly represent the model class that this was
@@ -361,7 +367,7 @@ class _Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexe
                     old_url_path = old_record.url_path
                     new_url_path = self.url_path
 
-        result = super(_Page, self).save(*args, **kwargs)
+        result = super(Page, self).save(*args, **kwargs)
 
         if update_descendant_url_paths:
             self._update_descendant_url_paths(old_url_path, new_url_path)
@@ -381,16 +387,16 @@ class _Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexe
         # Ensure that deletion always happens on an instance of Page, not a specific subclass. This
         # works around a bug in treebeard <= 3.0 where calling SpecificPage.delete() fails to delete
         # child pages that are not instances of SpecificPage
-        if type(self) is _Page:
+        if type(self) is Page:
             # this is a Page instance, so carry on as we were
-            return super(_Page, self).delete(*args, **kwargs)
+            return super(Page, self).delete(*args, **kwargs)
         else:
             # retrieve an actual Page instance and delete that instead of self
             return Page.objects.get(id=self.id).delete(*args, **kwargs)
 
     @classmethod
     def check(cls, **kwargs):
-        errors = super(_Page, cls).check(**kwargs)
+        errors = super(Page, cls).check(**kwargs)
 
         # Check that foreign keys from pages are not configured to cascade
         # This is the default Django behaviour which must be explicitly overridden
@@ -613,7 +619,7 @@ class _Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexe
     @classmethod
     def get_indexed_objects(cls):
         content_type = ContentType.objects.get_for_model(cls)
-        return super(_Page, cls).get_indexed_objects().filter(content_type=content_type)
+        return super(Page, cls).get_indexed_objects().filter(content_type=content_type)
 
     def get_indexed_instance(self):
         # This is accessed on save by the wagtailsearch signal handler, and in edge
@@ -758,7 +764,7 @@ class _Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexe
         Extension to the treebeard 'move' method to ensure that url_path is updated too.
         """
         old_url_path = Page.objects.get(id=self.id).url_path
-        super(_Page, self).move(target, pos=pos)
+        super(Page, self).move(target, pos=pos)
         # treebeard's move method doesn't actually update the in-memory instance, so we need to work
         # with a freshly loaded one now
         new_self = Page.objects.get(id=self.id)
@@ -1009,10 +1015,7 @@ class _Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexe
         context['action_url'] = action_url
         return TemplateResponse(request, self.password_required_template, context)
 
-class Page(_Page):
-    menu_weight = models.IntegerField(verbose_name=_('Weight in menus'), default = 0, help_text=_("Weight of the item in the menu"))
-    translation_of = models.ForeignKey('self', verbose_name = _('Translation of'), null = True, blank = True, default = None, related_name='+', help_text=_("Select the page of which this page is an translation"), on_delete=models.SET_NULL)
-
+    #BalkanCMS
     @property
     def site(self):
         try:
@@ -1070,6 +1073,7 @@ class Page(_Page):
                 return self
             else:
                 return Page.objects.ancestor_of(self, inclusive)[1]
+    ##BalkanCMS
 
 def get_navigation_menu_items():
     # Get all pages that appear in the navigation menu: ones which have children,
@@ -1158,7 +1162,7 @@ class PageRevision(models.Model):
         if self.created_at is None:
             self.created_at = timezone.now()
 
-        super(_PageRevision, self).save(*args, **kwargs)
+        super(PageRevision, self).save(*args, **kwargs)
         if self.submitted_for_moderation:
             # ensure that all other revisions of this page have the 'submitted for moderation' flag unset
             self.page.revisions.exclude(id=self.id).update(submitted_for_moderation=False)
