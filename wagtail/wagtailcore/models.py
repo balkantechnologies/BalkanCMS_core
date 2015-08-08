@@ -41,6 +41,12 @@ from wagtail.wagtailcore.signals import page_published, page_unpublished
 from wagtail.wagtailsearch import index
 from wagtail.wagtailsearch.backends import get_search_backend
 
+#BalkanCMS
+
+from django.utils.translation import get_language_from_request, activate
+from django.http import HttpResponseRedirect
+
+
 
 logger = logging.getLogger('wagtail.core')
 
@@ -49,9 +55,9 @@ class SiteManager(models.Manager):
     def get_by_natural_key(self, hostname, port):
         return self.get(hostname=hostname, port=port)
 
-
+#BalkanCMS: Renamed Site to _Site to override the site model
 @python_2_unicode_compatible
-class Site(models.Model):
+class _Site(models.Model):
     hostname = models.CharField(verbose_name=_('Hostname'), max_length=255, db_index=True)
     port = models.IntegerField(verbose_name=_('Port'), default=80, help_text=_("Set this to something other than 80 if you need a specific port number to appear in URLs (e.g. development on port 8000). Does not affect request handling (so port forwarding still works)."))
     root_page = models.ForeignKey('Page', verbose_name=_('Root page'), related_name='sites_rooted_here')
@@ -140,6 +146,9 @@ class Site(models.Model):
             cache.set('wagtail_site_root_paths', result, 3600)
 
         return result
+
+class Site(SiteBase):
+    is_multi_langual_site = models.BooleanField(verbose_name=_('Is multi-langual site'), default=False, help_text=_("Check to activate the multi-langual system"))
 
 # Clear the wagtail_site_root_paths from the cache whenever Site records are updated
 @receiver(post_save, sender=Site)
@@ -264,9 +273,9 @@ class PageBase(models.base.ModelBase):
             # register this type in the list of page content types
             PAGE_MODEL_CLASSES.append(cls)
 
-
+#BalkanCMS: Renamed Page to _Page to override the page model
 @python_2_unicode_compatible
-class Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexed)):
+class _Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexed)):
     title = models.CharField(verbose_name=_('Title'), max_length=255, help_text=_("The page title as you'd like it to be seen by the public"))
     slug = models.SlugField(verbose_name=_('Slug'), max_length=255, help_text=_("The name of the page as it will appear in URLs e.g http://domain.com/blog/[my-slug]/"))
     # TODO: enforce uniqueness on slug field per parent (will have to be done at the Django
@@ -1000,6 +1009,67 @@ class Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexed
         context['action_url'] = action_url
         return TemplateResponse(request, self.password_required_template, context)
 
+class Page(_Page):
+    menu_weight = models.IntegerField(verbose_name=_('Weight in menus'), default = 0, help_text=_("Weight of the item in the menu"))
+    translation_of = models.ForeignKey('self', verbose_name = _('Translation of'), null = True, blank = True, default = None, related_name='+', help_text=_("Select the page of which this page is an translation"), on_delete=models.SET_NULL)
+
+    @property
+    def site(self):
+        try:
+            if self.depth == 2:
+                return Site.objects.get(root_page=self)
+            else:
+                return Site.objects.get(root_page=self.get_ancestors()[1])
+        except:
+            return None
+
+    def serve(self, request, *args, **kwargs):
+        # Check if the site is multilangual and if the depth is 2, if so redirect to the proper language start page. If not render the page as usual
+        if self.site.is_multi_langual_site and self.depth == 2:
+            language = get_language_from_request(request)
+            activate(language)
+            return HttpResponseRedirect(self.url + language + '/')
+        else:
+            return TemplateResponse(
+                request,
+                self.get_template(request, *args, **kwargs),
+                self.get_context(request, *args, **kwargs)
+            )
+
+    def in_other_languages(self):
+        if self.site.is_multi_langual_site:
+            if self.translation_of:
+                # If this is a translated page return the main language and other translations
+                return Page.objects.filter(Q(translation_of = self.translation_of) | Q(pk = self.translation_of.pk)).exclude(pk = self.pk)
+            else:
+                # If this is the main language return all translations
+                return Page.objects.filter(translation_of = self)
+        else:
+            return None
+
+    def language(self):
+        if self.site.is_multi_langual_site:
+            # The site is multi-langual, so get the language
+            if self.depth == 3:
+                language = self.url.strip('/')
+            else:
+                language = self.get_ancestors()[2].url.strip('/')
+            return language
+        else:
+            # The site isn't multi-langual, so we'll return nothing
+            return None
+
+    def get_home(self, inclusive = False):
+        if self.site.is_multi_langual_site:
+            if self.depth == 3:
+                return self
+            else:
+                return Page.objects.ancestor_of(self, inclusive)[2]
+        else:
+            if self.depth == 2:
+                return self
+            else:
+                return Page.objects.ancestor_of(self, inclusive)[1]
 
 def get_navigation_menu_items():
     # Get all pages that appear in the navigation menu: ones which have children,
