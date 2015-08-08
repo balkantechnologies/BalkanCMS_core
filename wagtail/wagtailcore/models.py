@@ -311,7 +311,7 @@ class _Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexe
     )
 
     def __init__(self, *args, **kwargs):
-        super(Page, self).__init__(*args, **kwargs)
+        super(_Page, self).__init__(*args, **kwargs)
         if not self.id and not self.content_type_id:
             # this model is being newly created rather than retrieved from the db;
             # set content type to correctly represent the model class that this was
@@ -361,7 +361,7 @@ class _Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexe
                     old_url_path = old_record.url_path
                     new_url_path = self.url_path
 
-        result = super(Page, self).save(*args, **kwargs)
+        result = super(_Page, self).save(*args, **kwargs)
 
         if update_descendant_url_paths:
             self._update_descendant_url_paths(old_url_path, new_url_path)
@@ -381,16 +381,16 @@ class _Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexe
         # Ensure that deletion always happens on an instance of Page, not a specific subclass. This
         # works around a bug in treebeard <= 3.0 where calling SpecificPage.delete() fails to delete
         # child pages that are not instances of SpecificPage
-        if type(self) is Page:
+        if type(self) is _Page:
             # this is a Page instance, so carry on as we were
-            return super(Page, self).delete(*args, **kwargs)
+            return super(_Page, self).delete(*args, **kwargs)
         else:
             # retrieve an actual Page instance and delete that instead of self
             return Page.objects.get(id=self.id).delete(*args, **kwargs)
 
     @classmethod
     def check(cls, **kwargs):
-        errors = super(Page, cls).check(**kwargs)
+        errors = super(_Page, cls).check(**kwargs)
 
         # Check that foreign keys from pages are not configured to cascade
         # This is the default Django behaviour which must be explicitly overridden
@@ -613,7 +613,7 @@ class _Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexe
     @classmethod
     def get_indexed_objects(cls):
         content_type = ContentType.objects.get_for_model(cls)
-        return super(Page, cls).get_indexed_objects().filter(content_type=content_type)
+        return super(_Page, cls).get_indexed_objects().filter(content_type=content_type)
 
     def get_indexed_instance(self):
         # This is accessed on save by the wagtailsearch signal handler, and in edge
@@ -758,7 +758,7 @@ class _Page(six.with_metaclass(PageBase, MP_Node, ClusterableModel, index.Indexe
         Extension to the treebeard 'move' method to ensure that url_path is updated too.
         """
         old_url_path = Page.objects.get(id=self.id).url_path
-        super(Page, self).move(target, pos=pos)
+        super(_Page, self).move(target, pos=pos)
         # treebeard's move method doesn't actually update the in-memory instance, so we need to work
         # with a freshly loaded one now
         new_self = Page.objects.get(id=self.id)
@@ -1158,7 +1158,7 @@ class PageRevision(models.Model):
         if self.created_at is None:
             self.created_at = timezone.now()
 
-        super(PageRevision, self).save(*args, **kwargs)
+        super(_PageRevision, self).save(*args, **kwargs)
         if self.submitted_for_moderation:
             # ensure that all other revisions of this page have the 'submitted for moderation' flag unset
             self.page.revisions.exclude(id=self.id).update(submitted_for_moderation=False)
