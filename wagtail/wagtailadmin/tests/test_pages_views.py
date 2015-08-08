@@ -1337,7 +1337,7 @@ class TestPageCopy(TestCase, WagtailTestUtils):
         self.assertEqual(response.status_code, 200)
 
         # Check that a form error was raised
-        self.assertFormError(response, 'form', 'new_slug', "This slug is already in use within the context of its parent page \"Welcome to your new Wagtail site!\"")
+        self.assertFormError(response, 'form', 'new_slug', "This slug is already in use within the context of its parent page \"Welcome to your new BalkanCMS site!\"")
 
     def test_page_copy_post_existing_slug_to_another_parent_page(self):
         # This tests the existing slug checking on page copy when changing the parent page

@@ -147,7 +147,7 @@ class _Site(models.Model):
 
         return result
 
-class Site(SiteBase):
+class Site(_Site):
     is_multi_langual_site = models.BooleanField(verbose_name=_('Is multi-langual site'), default=False, help_text=_("Check to activate the multi-langual system"))
 
 # Clear the wagtail_site_root_paths from the cache whenever Site records are updated
