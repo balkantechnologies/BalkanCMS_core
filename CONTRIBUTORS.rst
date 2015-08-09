@@ -1,3 +1,12 @@
+For BalkanCMS_core
+
+Authors
+================
+* Arjan van Eersel arjan@balkan.tech
+
+
+For wagtail:
+
 Authors
 ================
 
